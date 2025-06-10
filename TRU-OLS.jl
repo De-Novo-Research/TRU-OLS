@@ -81,9 +81,9 @@ function TRU_OLS(mixmat::Matrix, dataset::Matrix, threshvec::Array{Float64}, nam
         temp = Float64[]  # Initialize temp
         tempn = String[]  # Initialize tempn
         removed_cols_dict[i] = Dict{String, Float64}()  # Initialize dictionary for this sample
-        
+        v = Vector(dataset[i, :])
         while mbelow == 0
-            unmix = mixmat2 \ Vector(dataset[i, :])
+            unmix = (mixmat2' * mixmat2)^(-1) * mixmat2' * v
             exclude_list = []
             
             for j in 1:a
