@@ -1,4 +1,4 @@
-using CSV, DataFrames, LinearAlgebra, StatsBase 
+using CSV, DataFrames, LinearAlgebra, StatsBase, FileIO, FCSFiles
 
 function mean_unmix(mixmat::Matrix, obsmat::Matrix, percen::Float64)
     """
@@ -24,8 +24,11 @@ function mean_unmix(mixmat::Matrix, obsmat::Matrix, percen::Float64)
         append!(unmixed, [recov])
     end
     a =  size(unmixed[1])[1]
-    means = []
+    
+    # --- CORRECTED: Initialized as Float64[] to ensure correct type ---
+    means = Float64[]
     vars = []
+    
     for i in 1:a
         temp = 0
         tempv = []
@@ -37,7 +40,10 @@ function mean_unmix(mixmat::Matrix, obsmat::Matrix, percen::Float64)
         append!(means, temp)
         append!(vars, var(tempv))
     end
-    per = []
+    
+    # --- CORRECTED: Initialized as Float64[] to ensure correct type ---
+    per = Float64[]
+    
     for i in 1:a
         temp = []
         for j in 1:m
@@ -83,8 +89,10 @@ function TRU_OLS(mixmat::Matrix, dataset::Matrix, threshvec::Array{Float64}, nam
         removed_cols_dict[i] = Dict{String, Float64}()  # Initialize dictionary for this sample
         v = Vector(dataset[i, :])
         while mbelow == 0
-            unmix = (mixmat2' * mixmat2)^(-1) * mixmat2' * v
-            exclude_list = []
+            # --- IMPROVED: Replaced unstable matrix inversion with Julia's backslash operator ---
+            unmix = mixmat2 \ v
+            
+            exclude_list = Int[] # Use Int[] for type stability
             
             for j in 1:a
                 if unmix[j] < threshvec2[j]
@@ -94,16 +102,21 @@ function TRU_OLS(mixmat::Matrix, dataset::Matrix, threshvec::Array{Float64}, nam
                 end
             end
             
-            if exclude_list == []
+            if isempty(exclude_list) # More idiomatic way to check for an empty array
                 temp = unmix
                 tempn = namevec2
                 mbelow = 1
+            else
+                # --- NOTE: This logic was changed slightly to avoid errors when all columns are excluded ---
+                # This ensures the loop eventually terminates.
+                mixmat2 = mixmat2[:, Not(exclude_list)]
+                threshvec2 = threshvec2[Not(exclude_list)]
+                namevec2 = namevec2[Not(exclude_list)]
+                a = length(threshvec2)
+                if a == 0 # If all columns removed, stop the loop for this cell
+                    mbelow = 1
+                end
             end
-            
-            mixmat2 = mixmat2[:, Not(exclude_list)]
-            threshvec2 = threshvec2[Not(exclude_list)]
-            namevec2 = namevec2[Not(exclude_list)]
-            a = length(threshvec2)
         end 
         
         append!(unmixed, [temp])
@@ -115,7 +128,7 @@ end
 
 function mapDistribution!(irrelevantData::Vector{Float64}, distributionToMatch::Vector{Float64})
     """
-    This function takes in two lists of values.  THe first is a list of all irrelevant abundances for a single endmember over a dataset.
+    This function takes in two lists of values.  The first is a list of all irrelevant abundances for a single endmember over a dataset.
     The second is a list of unmixed control abundances.  The output is a vector with the irrelevant abundances replaced with
     their percentile match from the control
 
@@ -126,6 +139,10 @@ function mapDistribution!(irrelevantData::Vector{Float64}, distributionToMatch::
     Return:
     - irrelevantData: Percentile matched single stain data to replace irrelevant data
     """
+    if isempty(irrelevantData) || isempty(distributionToMatch)
+        return irrelevantData # Return early if nothing to map
+    end
+
     # Sort the distribution to match percentiles
     sortedDistribution = sort(distributionToMatch)
 
@@ -135,15 +152,15 @@ function mapDistribution!(irrelevantData::Vector{Float64}, distributionToMatch::
 
     lenM1 = length(sortedDistribution) - 1
 
-    for cntr = 0:length(irrelevantData)-1
+    for cntr = 1:length(irrelevantData)
         # Calculate percentile in the irrelevant data
-        sortedPerc = cntr / length(sortedIrrelevantData)
+        sortedPerc = (cntr - 1) / (length(sortedIrrelevantData) - 1)
 
         # Find index of corresponding percentile in distribution to match
-        ssIdx = round(Int, sortedPerc * lenM1) + 1  # +1 for 1-based indexing in Julia
+        ssIdx = round(Int, sortedPerc * lenM1) + 1
 
         # Get the original index (possibly shuffled)
-        origIdx = sorted_indices[cntr + 1]  # +1 for 1-based indexing
+        origIdx = sorted_indices[cntr]
 
         # Get the new value from the distribution to match
         newValue = sortedDistribution[ssIdx]
@@ -238,41 +255,45 @@ function create_complete_dataframe(mixmat::Matrix, namevec::Array, dataset::Matr
     end
 
     if match == true
-        #unmix negative and store values by column 
+        # Unmix negative and store values by column 
         x, y = size(unstained_dataset)
         unstained_df = DataFrame([name => Float64[] for name in namevec])
+        
+        # --- CORRECTED: Loop now unmixes each row individually ---
         for i in 1:x
-            push!(unstained_df, mixmat \ unstained_dataset)
+            unmixed_row = mixmat \ unstained_dataset[i, :]
+            push!(unstained_df, unmixed_row)
         end
+        
         # Process removed columns to organize by column name
         column_removed_values = organize_by_column_name(removed_cols_dict)
         
         # Transform the removed values using map_distribution
         transformed_values = Dict{String, Vector{Float64}}()
         for (col_name, values) in column_removed_values
-            transformed_values[col_name] = map_distribution(values, unstained_df[!, col_name])
+            # Ensure the column exists in the unstained data before trying to access it
+            if haskey(unstained_df, col_name)
+                transformed_values[col_name] = mapDistribution!(values, unstained_df[!, col_name])
+            end
         end
         
+        # Create a dictionary to easily access the transformed values
+        # This is more efficient than searching through the dictionary every time.
+        col_to_transformed_idx = Dict{String, Int}()
+        for (col_name, values) in column_removed_values
+             col_to_transformed_idx[col_name] = 0
+        end
+
         # Fill in the dataframe with transformed values for removed columns
         for i in 1:m
             removed_in_sample = removed_cols_dict[i]
-            for col_name in namevec
-                # If this column was removed in this sample and we have a transformed value
-                if haskey(removed_in_sample, col_name) && result[col_name][i] == 0.0
-                    # Get the index of this column in the transformed values array
-                    if haskey(transformed_values, col_name)
-                        # Find the index of this sample's removed value in the original array
-                        idx = 0
-                        for (j, (sample_idx, sample_removed)) in enumerate(removed_cols_dict)
-                            if sample_idx == i && haskey(sample_removed, col_name)
-                                idx = findfirst(x -> x == removed_in_sample[col_name], column_removed_values[col_name])
-                                break
-                            end
-                        end
-                        
-                        if idx != nothing && idx > 0 && idx <= length(transformed_values[col_name])
-                            result[col_name][i] = transformed_values[col_name][idx]
-                        end
+            for (col_name, removed_value) in removed_in_sample
+                if haskey(transformed_values, col_name) && result[col_name][i] == 0.0
+                    # Get the next available transformed value for this column
+                    current_idx = col_to_transformed_idx[col_name] + 1
+                    if current_idx <= length(transformed_values[col_name])
+                        result[col_name][i] = transformed_values[col_name][current_idx]
+                        col_to_transformed_idx[col_name] = current_idx
                     end
                 end
             end
@@ -282,6 +303,8 @@ function create_complete_dataframe(mixmat::Matrix, namevec::Array, dataset::Matr
     df = DataFrame(result)
     return df
 end
+
+
 
 
 
