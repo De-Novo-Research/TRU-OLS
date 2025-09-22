@@ -12,7 +12,7 @@ ms=CSV.read(multi_path,DataFrame)
 
 #Get names from mixing matrix.
 
-namel = names(mixmat)
+namel = names(mm)
 
 #Cast all DataFrames to Matrices.
 
