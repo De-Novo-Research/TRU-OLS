@@ -11,12 +11,17 @@ us=CSV.read(unstained_path,DataFrame)
 ms=CSV.read(multi_path,DataFrame)
 
 #Get names from mixing matrix.
+
 namel = names(mixmat)
 
 #Cast all DataFrames to Matrices.
+
 mm = Matrix(mm)
+
 us = Matrix(us)
+
 ms = Matrix(ms)
 
 #Invoke function create_complete_dataframe with those as arguments, using negative matching and a default 99 percentile cutoff
+
 result = create_complete_dataframe(mm, namel, ms, us, true) 
