@@ -3,8 +3,11 @@ The file provides a reference implementation for the TRU_OLS algorithm. The offi
 How To Use
  
 #Read in a mixing matrix, an unstained dataset, and a multicolor dataset from CSV files as DataFrames
+
 mm=CSV.read(mixmat_path,DataFrame)
+
 us=CSV.read(unstained_path,DataFrame)
+
 ms=CSV.read(multi_path,DataFrame)
 
 #Get names from mixing matrix.
