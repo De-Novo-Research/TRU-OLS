@@ -16,11 +16,11 @@ namel = names(mm)
 
 #Cast all DataFrames to Matrices.
 
-mm = Matrix(mm)
+# --- CORRECTED: Cast to Matrix{Float64} for type consistency ---
+mm = Matrix{Float64}(mm_df)
+us = Matrix{Float64}(us_df)
+ms = Matrix{Float64}(ms_df)
 
-us = Matrix(us)
-
-ms = Matrix(ms)
 
 #Invoke function create_complete_dataframe with those as arguments, using negative matching and a default 99 percentile cutoff
 
