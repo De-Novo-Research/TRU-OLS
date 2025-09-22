@@ -272,7 +272,7 @@ function create_complete_dataframe(mixmat::Matrix, namevec::Array, dataset::Matr
         transformed_values = Dict{String, Vector{Float64}}()
         for (col_name, values) in column_removed_values
             # Ensure the column exists in the unstained data before trying to access it
-            if haskey(unstained_df, col_name)
+            if hasproperty(unstained_df, col_name)
                 transformed_values[col_name] = mapDistribution!(values, unstained_df[!, col_name])
             end
         end
