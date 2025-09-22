@@ -16,7 +16,6 @@ namel = names(mm)
 
 #Cast all DataFrames to Matrices.
 
-# --- CORRECTED: Cast to Matrix{Float64} for type consistency ---
 mm = Matrix{Float64}(mm_df)
 us = Matrix{Float64}(us_df)
 ms = Matrix{Float64}(ms_df)
