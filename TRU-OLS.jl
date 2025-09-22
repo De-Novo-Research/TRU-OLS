@@ -210,7 +210,7 @@ function create_complete_dataframe(mixmat::Matrix, namevec::Array, dataset::Matr
     zero_baseline_mat[:, end] .= 0.0
     baseline = zero_baseline_mat * neg_abunds
 
-    m,n = size(full_tube_data)
+    m,n = size(dataset)
     new_tube = copy(dataset)
     for i in 1:m
         new_tube[i, :] = Vector(dataset[i, :]) .- baseline
@@ -282,5 +282,6 @@ function create_complete_dataframe(mixmat::Matrix, namevec::Array, dataset::Matr
     df = DataFrame(result)
     return df
 end
+
 
 
