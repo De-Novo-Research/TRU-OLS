@@ -17,7 +17,7 @@ function mean_unmix(mixmat::Matrix, obsmat::Matrix, percen::Float64)
     - cutoff values vector
     """
     unmixed = []
-    m, n = size(obsdf)
+    m, n = size(obsmat)
     for i in 1:m
         obs = obsmat[i, :]
         recov = mixmat \ Vector(obs)
@@ -282,4 +282,5 @@ function create_complete_dataframe(mixmat::Matrix, namevec::Array, dataset::Matr
     df = DataFrame(result)
     return df
 end
+
 
