@@ -1,9 +1,11 @@
 # TRU-OLS
 
 Julia and R implementations of threshold-refined ordinary least squares for
-spectral flow-cytometry unmixing.  Please note that the R implementation was AI
+spectral flow-cytometry unmixing.  The Julia version should be considered more reliable, and has recently
+been updated to fix small bugs.
+Please note that the R implementation was AI
 generated using ChatGPT-5.6 Sol.  We are providing it for ease of use due to requests
-but with very minimal testing.  The Julia version should be considered more reliable.
+but with very minimal testing. 
 If you have any bugs, please send them to ryan.kmet@denovoresearch.org, though
 we cannot promise that we will resolve them.
 
