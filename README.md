@@ -1,7 +1,11 @@
 # TRU-OLS
 
 Julia and R implementations of threshold-refined ordinary least squares for
-spectral flow-cytometry unmixing.
+spectral flow-cytometry unmixing.  Please note that the R implementation was AI
+generated using ChatGPT-5.6 Sol.  We are providing it for ease of use due to requests
+but with very minimal testing.  The Julia version should be considered more reliable.
+If you have any bugs, please send them to ryan.kmet@denovoresearch.org, though
+we cannot promise that we will resolve them.
 
 `mixmat` is detectors by endmembers. Event and unstained-control matrices are
 events by detectors. The last mixing-matrix column is treated as
